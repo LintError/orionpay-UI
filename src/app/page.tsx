@@ -29,7 +29,7 @@ import {
   Palette
 } from 'lucide-react';
 import { useTheme } from '@/src/contexts/ThemeContext';
-import StellarWallet from '@/src/components/stellar/StellarWallet';
+import StellarWalletLoader from '@/src/components/stellar/StellarWalletLoader';
 
 // Chain logos as simple SVGs
 const ChainIcons = {
@@ -969,9 +969,9 @@ export default function Home() {
               Try Our Stellar Wallet
             </h2>
             <p className="text-white/60 text-center mb-12 max-w-2xl mx-auto">
-              Experience the power of Stellar's blockchain with our integrated wallet. Create an account, receive testnet XLM, and send payments in seconds.
+              Experience the power of Stellar&apos;s blockchain with our integrated wallet. Create an account, receive testnet XLM, and send payments in seconds.
             </p>
-            <StellarWallet />
+            {typeof window !== 'undefined' && <StellarWalletLoader />}
           </motion.div>
         </div>
       </section>
