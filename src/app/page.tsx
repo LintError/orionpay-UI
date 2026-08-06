@@ -29,8 +29,18 @@ import {
   Palette
 } from 'lucide-react';
 import { useTheme } from '@/src/contexts/ThemeContext';
+import StellarWalletLoader from '@/src/components/stellar/StellarWalletLoader';
 
 // Chain logos as simple SVGs
+const backgroundParticles = Array.from({ length: 50 }, (_, i) => ({
+  id: i,
+  x: `${(i * 7) % 100}%`,
+  y: `${(i * 13 + 3) % 100}%`,
+  opacity: 0.3 + ((i % 5) * 0.1),
+  duration: 3 + (i % 5),
+  delay: (i % 10) * 0.5,
+}));
+
 const ChainIcons = {
   Stellar: () => (
     <svg viewBox="0 0 24 24" className="w-8 h-8" fill="#050816">
@@ -183,23 +193,23 @@ export default function Home() {
     }`}>
       {/* Animated Background Particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {[...Array(50)].map((_, i) => (
+        {backgroundParticles.map((particle) => (
           <motion.div
-            key={i}
+            key={particle.id}
             className="absolute w-1 h-1 rounded-full bg-white/30"
             initial={{
-              x: `${Math.random() * 100}%`,
-              y: `${Math.random() * 100}%`,
-              opacity: 0.3,
+              x: particle.x,
+              y: particle.y,
+              opacity: particle.opacity,
             }}
             animate={{
-              opacity: [0.3, 0.8, 0.3],
+              opacity: [particle.opacity, Math.min(particle.opacity + 0.5, 0.8), particle.opacity],
               scale: [1, 1.5, 1],
             }}
             transition={{
-              duration: 3 + Math.random() * 4,
+              duration: particle.duration,
               repeat: Infinity,
-              delay: Math.random() * 5,
+              delay: particle.delay,
             }}
           />
         ))}
@@ -952,6 +962,26 @@ export default function Home() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Stellar Wallet Section */}
+      <section className="py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-center mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              Try Our Stellar Wallet
+            </h2>
+            <p className="text-white/60 text-center mb-12 max-w-2xl mx-auto">
+              Experience the power of Stellar&apos;s blockchain with our integrated wallet. Create an account, receive testnet XLM, and send payments in seconds.
+            </p>
+            {typeof window !== 'undefined' && <StellarWalletLoader />}
+          </motion.div>
         </div>
       </section>
 
