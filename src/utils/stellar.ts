@@ -1,12 +1,22 @@
-import StellarSDK from '@stellar/stellar-sdk';
-const { Server, Keypair, TransactionBuilder, Operation, Asset, Networks } = StellarSDK;
+import { Account, Asset, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
 
-// Initialize Stellar server (using testnet for development)
-const server = new Server('https://horizon-testnet.stellar.org');
+const HORIZON_URL = 'https://horizon-testnet.stellar.org';
+const FRIENDBOT_URL = 'https://friendbot.stellar.org';
 const networkPassphrase = Networks.TESTNET;
 
+const fetchJson = async (url: string, init?: RequestInit) => {
+  const response = await fetch(url, init);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Stellar request failed (${response.status}): ${errorText}`);
+  }
+
+  return response.json();
+};
+
 // Create a new Stellar keypair
-export const createStellarAccount = () => {
+export const createStellarAccount = async () => {
   const keypair = Keypair.random();
   return {
     publicKey: keypair.publicKey(),
@@ -17,7 +27,7 @@ export const createStellarAccount = () => {
 // Get account balance
 export const getAccountBalance = async (publicKey: string) => {
   try {
-    const account = await server.loadAccount(publicKey);
+    const account = await fetchJson(`${HORIZON_URL}/accounts/${publicKey}`);
     const balances = account.balances.map((balance: any) => ({
       asset: balance.asset_type === 'native' ? 'XLM' : balance.asset_code,
       balance: parseFloat(balance.balance),
@@ -32,8 +42,7 @@ export const getAccountBalance = async (publicKey: string) => {
 // Fund testnet account (only works on testnet)
 export const fundTestnetAccount = async (publicKey: string) => {
   try {
-    const response = await fetch(`https://friendbot.stellar.org?addr=${publicKey}`);
-    return await response.json();
+    return await fetchJson(`${FRIENDBOT_URL}?addr=${publicKey}`);
   } catch (error) {
     console.error('Error funding account:', error);
     throw error;
@@ -48,7 +57,8 @@ export const sendXLM = async (
 ) => {
   try {
     const sourceKeypair = Keypair.fromSecret(senderSecret);
-    const sourceAccount = await server.loadAccount(sourceKeypair.publicKey());
+    const sourceAccountResponse = await fetchJson(`${HORIZON_URL}/accounts/${sourceKeypair.publicKey()}`);
+    const sourceAccount = new Account(sourceAccountResponse.account_id, sourceAccountResponse.sequence);
 
     const transaction = new TransactionBuilder(sourceAccount, {
       fee: '100',
@@ -65,7 +75,15 @@ export const sendXLM = async (
       .build();
 
     transaction.sign(sourceKeypair);
-    const result = await server.submitTransaction(transaction);
+
+    const result = await fetchJson(`${HORIZON_URL}/transactions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/xdr',
+      },
+      body: transaction.toXDR(),
+    });
+
     return result;
   } catch (error) {
     console.error('Error sending payment:', error);
@@ -76,12 +94,10 @@ export const sendXLM = async (
 // Get transaction history
 export const getTransactionHistory = async (publicKey: string) => {
   try {
-    const transactions = await server.transactions()
-      .forAccount(publicKey)
-      .limit(10)
-      .order('desc')
-      .call();
-    return transactions.records;
+    const transactions = await fetchJson(
+      `${HORIZON_URL}/accounts/${publicKey}/transactions?order=desc&limit=10&include_failed=false`
+    );
+    return transactions._embedded?.records ?? [];
   } catch (error) {
     console.error('Error fetching transactions:', error);
     throw error;

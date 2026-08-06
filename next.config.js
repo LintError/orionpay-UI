@@ -12,10 +12,24 @@ const nextConfig = {
         'sodium-native': false,
         'require-addon': false,
       };
+      
+      // Completely exclude sodium-native and require-addon from the client bundle
+      config.externals = config.externals || [];
+      config.externals.push({
+        'sodium-native': 'sodium-native',
+        'require-addon': 'require-addon',
+      });
+      
+      // Ignore warnings for sodium-native and require-addon
+      config.ignoreWarnings = [
+        ...(config.ignoreWarnings || []),
+        /require-addon/,
+        /sodium-native/,
+        /Critical dependency/,
+      ];
     }
     return config;
   },
-  // Disable strict mode temporarily if needed, but main fix is dynamic import
 };
 
 module.exports = nextConfig;

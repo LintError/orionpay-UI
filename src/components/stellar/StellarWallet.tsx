@@ -39,7 +39,7 @@ export default function StellarWallet() {
   const handleCreateAccount = async () => {
     setLoading(true);
     try {
-      const account = createStellarAccount();
+      const account = await createStellarAccount();
       setPublicKey(account.publicKey);
       setSecretKey(account.secretKey);
       toast.success('New Stellar account created!');

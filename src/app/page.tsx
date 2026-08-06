@@ -32,6 +32,15 @@ import { useTheme } from '@/src/contexts/ThemeContext';
 import StellarWalletLoader from '@/src/components/stellar/StellarWalletLoader';
 
 // Chain logos as simple SVGs
+const backgroundParticles = Array.from({ length: 50 }, (_, i) => ({
+  id: i,
+  x: `${(i * 7) % 100}%`,
+  y: `${(i * 13 + 3) % 100}%`,
+  opacity: 0.3 + ((i % 5) * 0.1),
+  duration: 3 + (i % 5),
+  delay: (i % 10) * 0.5,
+}));
+
 const ChainIcons = {
   Stellar: () => (
     <svg viewBox="0 0 24 24" className="w-8 h-8" fill="#050816">
@@ -184,23 +193,23 @@ export default function Home() {
     }`}>
       {/* Animated Background Particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {[...Array(50)].map((_, i) => (
+        {backgroundParticles.map((particle) => (
           <motion.div
-            key={i}
+            key={particle.id}
             className="absolute w-1 h-1 rounded-full bg-white/30"
             initial={{
-              x: `${Math.random() * 100}%`,
-              y: `${Math.random() * 100}%`,
-              opacity: 0.3,
+              x: particle.x,
+              y: particle.y,
+              opacity: particle.opacity,
             }}
             animate={{
-              opacity: [0.3, 0.8, 0.3],
+              opacity: [particle.opacity, Math.min(particle.opacity + 0.5, 0.8), particle.opacity],
               scale: [1, 1.5, 1],
             }}
             transition={{
-              duration: 3 + Math.random() * 4,
+              duration: particle.duration,
               repeat: Infinity,
-              delay: Math.random() * 5,
+              delay: particle.delay,
             }}
           />
         ))}
