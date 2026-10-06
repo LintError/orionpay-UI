@@ -81,6 +81,23 @@ lib/
 hooks/
 styles/
 
+```
+src/
+├── app/                 # Next.js app router (pages, layout)
+├── components/
+│   ├── common/          # Shared UI components (Spinner, FullPageLoader)
+│   ├── layout/          # Header, Footer
+│   ├── stellar/         # StellarWallet, StellarWalletLoader
+│   └── ui/              # Button, Card, Input, OrionLoader
+├── contexts/            # React contexts (ThemeContext)
+├── hooks/               # Custom React hooks (redux)
+├── store/               # Redux store
+│   └── slices/          # Redux slices
+└── utils/               # Utilities (stellar.ts, toast.ts)
+```
+
+> **Note:** OrionPay runs on **Stellar Testnet** by default. Do not use real funds.
+
 ---
 
 ## Getting Started

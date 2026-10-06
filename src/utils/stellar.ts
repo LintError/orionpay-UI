@@ -1,7 +1,7 @@
 import { Account, Asset, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
 
-const HORIZON_URL = 'https://horizon-testnet.stellar.org';
-const FRIENDBOT_URL = 'https://friendbot.stellar.org';
+const HORIZON_URL = 'HORIZON_URL';
+const FRIENDBOT_URL = FRIENDBOT_URL;
 const networkPassphrase = Networks.TESTNET;
 
 const fetchJson = async (url: string, init?: RequestInit) => {
@@ -16,6 +16,11 @@ const fetchJson = async (url: string, init?: RequestInit) => {
 };
 
 // Create a new Stellar keypair
+// Environment configuration
+const HORIZON_URL = process.env.NEXT_PUBLIC_HORIZON_URL || 'HORIZON_URL';
+const STELLAR_NETWORK = (process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'testnet') as 'testnet' | 'public' | 'futurenet';
+const FRIENDBOT_URL = process.env.NEXT_PUBLIC_FRIENDBOT_URL || FRIENDBOT_URL;
+
 export const createStellarAccount = async () => {
   const keypair = Keypair.random();
   return {

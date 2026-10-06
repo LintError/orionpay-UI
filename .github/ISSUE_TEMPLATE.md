@@ -11,15 +11,15 @@ assignees: ''
 <!-- Describe the issue or feature request clearly and concisely -->
 
 ### Type of Issue
-- [ ] 🐛 Bug Report
-- [ ] ✨ Feature Request
-- [ ] 📚 Documentation Update
-- [ ] 🎨 UI/UX Improvement
-- [ ] ⚡ Performance Optimization
+- - [ ] 🐛 Bug Report
+- - [ ] ✨ Feature Request
+- - [ ] 📚 Documentation Update
+- - [ ] 🎨 UI/UX Improvement
+- - [ ] ⚡ Performance Optimization
 
 ### Stellar Wave Program
-- [ ] This issue is part of the Stellar Wave Program
-- Complexity: [ ] Trivial (100 points) [ ] Medium (150 points) [ ] High (200 points)
+- - [ ] This issue is part of the Stellar Wave Program
+- Complexity: - [ ] Trivial (100 points) - [ ] Medium (150 points) - [ ] High (200 points)
 
 ### Expected Behavior
 <!-- What you expect to happen -->
@@ -45,5 +45,5 @@ assignees: ''
 <!-- Link to any related issues -->
 
 ### Would you like to work on this issue?
-- [ ] Yes, I would like to implement this
-- [ ] No, I'm just reporting it
+- - [ ] Yes, I would like to implement this
+- - [ ] No, I'm just reporting it
