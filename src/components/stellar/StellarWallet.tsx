@@ -95,6 +95,12 @@ export default function StellarWallet() {
     }
   }, []);
 
+  // Refresh data periodically without overlapping requests
+  const { refresh } = useAccountPolling({
+    publicKey,
+    loadAccountData,
+  });
+
   // Refresh balances
   const handleRefresh = async () => {
     if (publicKey) {
@@ -130,12 +136,6 @@ export default function StellarWallet() {
     setCopied(type);
     setTimeout(() => setCopied(''), 2000);
   };
-
-  // Refresh data periodically without overlapping requests
-  const { refresh } = useAccountPolling({
-    publicKey,
-    loadAccountData,
-  });
 
   const xlmBalance = balances.find(b => b.asset === 'XLM')?.balance || 0;
 
