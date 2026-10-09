@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Wallet, Send, RefreshCw, Copy, Check, AlertCircle } from 'lucide-react';
 import { 
   createStellarAccount, 
@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import Button from '@/src/components/ui/Button';
 import Input from '@/src/components/ui/Input';
 import Card from '@/src/components/ui/Card';
+import { useAccountPolling } from '@/src/hooks/useAccountPolling';
 
 interface Transaction {
   id: string;
@@ -34,6 +35,9 @@ export default function StellarWallet() {
     amount: ''
   });
   const [showSecret, setShowSecret] = useState<boolean>(false);
+  // Incremented per request so responses that arrive out of order (slow Horizon,
+  // slow connection) are discarded instead of overwriting fresher state.
+  const requestIdRef = useRef<number>(0);
 
   // Create new account
   const handleCreateAccount = async () => {
@@ -58,28 +62,49 @@ export default function StellarWallet() {
   };
 
   // Load account data
-  const loadAccountData = async (pubKey: string) => {
+  const loadAccountData = useCallback(async (pubKey: string) => {
+    const requestId = ++requestIdRef.current;
+
     try {
-      const accountBalances = await getAccountBalance(pubKey);
+      const [accountBalances, txHistory] = await Promise.all([
+        getAccountBalance(pubKey),
+        getTransactionHistory(pubKey),
+      ]);
+
+      // A newer request already started (or the account changed); this response
+      // is stale, so drop it instead of flashing older state.
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setBalances(accountBalances);
-      
-      const txHistory = await getTransactionHistory(pubKey);
-      setTransactions(txHistory.map((tx: any) => ({
-        id: tx.id,
-        created_at: tx.created_at,
-        source_account: tx.source_account,
-        to: tx.operations?.records?.[0]?.destination || 'unknown',
-        amount: tx.operations?.records?.[0]?.amount || '0'
-      })));
+      setTransactions(
+        txHistory.map((tx: any) => ({
+          id: tx.id,
+          created_at: tx.created_at,
+          source_account: tx.source_account,
+          to: tx.operations?.records?.[0]?.destination || 'unknown',
+          amount: tx.operations?.records?.[0]?.amount || '0'
+        }))
+      );
     } catch (error) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       console.error('Error loading account data:', error);
     }
-  };
+  }, []);
+
+  // Refresh data periodically without overlapping requests
+  const { refresh } = useAccountPolling({
+    publicKey,
+    loadAccountData,
+  });
 
   // Refresh balances
   const handleRefresh = async () => {
     if (publicKey) {
-      await loadAccountData(publicKey);
+      await refresh();
       toast.success('Balances refreshed');
     }
   };
@@ -96,7 +121,8 @@ export default function StellarWallet() {
       await sendXLM(secretKey, sendForm.destination, sendForm.amount);
       toast.success('Payment sent successfully!');
       setSendForm({ destination: '', amount: '' });
-      await loadAccountData(publicKey);
+      // Show the new balance right away instead of waiting for the next poll.
+      await refresh();
     } catch (error) {
       toast.error('Failed to send payment');
     } finally {
@@ -110,14 +136,6 @@ export default function StellarWallet() {
     setCopied(type);
     setTimeout(() => setCopied(''), 2000);
   };
-
-  // Refresh data periodically
-  useEffect(() => {
-    if (publicKey) {
-      const interval = setInterval(() => loadAccountData(publicKey), 30000);
-      return () => clearInterval(interval);
-    }
-  }, [publicKey]);
 
   const xlmBalance = balances.find(b => b.asset === 'XLM')?.balance || 0;
 
