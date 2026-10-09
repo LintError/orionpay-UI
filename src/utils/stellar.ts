@@ -112,14 +112,20 @@ export interface SendXLMOptions {
   horizonUrl?: string;
 }
 
+export const DEFAULT_TX_TIMEOUT_SECONDS = 30;
+
+// Timeout stays env-configurable so it can be tuned per deployment without a
+// code change. Falls back to the default when the value is unset or invalid.
 const resolveTimeout = (timeout?: number) => {
   if (typeof timeout === 'number' && Number.isFinite(timeout)) {
     return timeout;
   }
 
-  const fromEnv =
-    typeof process !== 'undefined' ? Number(process.env?.NEXT_PUBLIC_STELLAR_TX_TIMEOUT) : Number.NaN;
-  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : 30;
+  const configured =
+    typeof process !== 'undefined' && process.env ? process.env.NEXT_PUBLIC_STELLAR_TX_TIMEOUT : undefined;
+  const fromEnv = Number(configured);
+
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_TX_TIMEOUT_SECONDS;
 };
 
 // Send XLM payment
