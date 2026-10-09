@@ -1,6 +1,6 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
-import { Account, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
+import { Account, Asset, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
 import { BASE_FEE_STROOPS, createStellarAccount, getSuggestedFee, sendXLM, submitTransaction } from './stellar.ts';
 
 interface CapturedRequest {
@@ -44,7 +44,7 @@ describe('submitTransaction', () => {
       .addOperation(
         Operation.payment({
           destination: Keypair.random().publicKey(),
-          asset: 'native',
+          asset: Asset.native(),
           amount: '1',
         })
       )
