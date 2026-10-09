@@ -240,12 +240,17 @@ describe('sendXLM', () => {
     console.error = originalError;
   });
 
-  const submissionRequest = () => requests.find((request) => request.url.endsWith('/transactions'));
-  const submittedFee = () => {
-    const body = String(submissionRequest()?.init.body);
-    const xdr = new URLSearchParams(body).get('tx');
-    return TransactionBuilder.fromXDR(xdr as string, Networks.TESTNET).fee;
+  const submissionRequest = () => {
+    const submission = requests.find((request) => request.url.endsWith('/transactions'));
+    assert.ok(submission, 'expected a submission request');
+
+    const xdr = new URLSearchParams(String(submission.init.body)).get('tx');
+    assert.ok(xdr, 'expected a tx field in the submission body');
+
+    return TransactionBuilder.fromXDR(xdr, Networks.TESTNET);
   };
+
+  const submittedFee = () => submissionRequest().fee;
 
   test('builds the transaction with the fee from /fee_stats', async () => {
     mockHorizon({ min_fee: { base_fee: '100' }, fee_charged: { p90: '4200' } });
@@ -284,17 +289,20 @@ describe('sendXLM', () => {
     assert.deepStrictEqual(result, { hash: 'abc123' });
 
     const submission = submissionRequest();
-    assert.strictEqual((submission?.init.headers as Record<string, string>)['Content-Type'], 'application/x-www-form-urlencoded');
+    assert.ok(submission, 'expected a submission request');
 
-    const transaction = TransactionBuilder.fromXDR(
-      new URLSearchParams(String(submission?.init.body)).get('tx') as string,
-      Networks.TESTNET
-    );
+    const headers = submission.init.headers as Record<string, string>;
+    assert.strictEqual(headers['Content-Type'], 'application/x-www-form-urlencoded');
 
-    const payment = transaction.operations[0];
-    const paymentDestination = payment.destination as { accountId: () => string } | undefined;
+    const xdr = new URLSearchParams(String(submission.init.body)).get('tx');
+    assert.ok(xdr, 'expected a tx field in the submission body');
 
-    assert.strictEqual(paymentDestination?.accountId(), destination);
+    const transaction = TransactionBuilder.fromXDR(xdr, Networks.TESTNET);
+
+    // operations are typed loosely by the sdk, so read the fields we care about
+    const payment = transaction.operations[0] as any;
+
+    assert.strictEqual(payment.destination.accountId(), destination);
     assert.strictEqual(payment.amount, '2.5');
   });
 });
