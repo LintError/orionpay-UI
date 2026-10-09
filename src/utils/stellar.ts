@@ -1,6 +1,14 @@
-import { Account, Asset, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
+import {
+  Account,
+  Asset,
+  Keypair,
+  Networks,
+  Operation,
+  Transaction,
+  TransactionBuilder,
+} from '@stellar/stellar-sdk';
 
-const HORIZON_URL = 'https://horizon-testnet.stellar.org';
+export const HORIZON_URL = 'https://horizon-testnet.stellar.org';
 const FRIENDBOT_URL = 'https://friendbot.stellar.org';
 const networkPassphrase = Networks.TESTNET;
 
@@ -49,6 +57,24 @@ export const fundTestnetAccount = async (publicKey: string) => {
   }
 };
 
+// Submit a signed transaction to Horizon.
+// Horizon accepts either:
+//   - `application/x-www-form-urlencoded` with a `tx` field containing base64 XDR
+//   - `application/x-stellar-xdr` with the raw base64 XDR body
+// `application/xdr` is NOT a valid content type and results in a 400 from Horizon.
+export const submitTransaction = async (
+  transaction: Transaction,
+  horizonUrl: string = HORIZON_URL
+) => {
+  return fetchJson(`${horizonUrl}/transactions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({ tx: transaction.toXDR() }).toString(),
+  });
+};
+
 // Send XLM payment
 export const sendXLM = async (
   senderSecret: string,
@@ -76,13 +102,7 @@ export const sendXLM = async (
 
     transaction.sign(sourceKeypair);
 
-    const result = await fetchJson(`${HORIZON_URL}/transactions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/xdr',
-      },
-      body: transaction.toXDR(),
-    });
+    const result = await submitTransaction(transaction);
 
     return result;
   } catch (error) {
