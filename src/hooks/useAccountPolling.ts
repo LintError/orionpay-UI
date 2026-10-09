@@ -70,44 +70,54 @@ export function useAccountPolling({
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // True while a tick is executing, so we never end up with two chains of
+    // setTimeout each scheduling the next one.
+    let running = false;
 
     const schedule = () => {
       if (cancelled) {
         return;
       }
-      timer = setTimeout(tick, intervalMs);
+      timer = setTimeout(() => void tick(), intervalMs);
     };
 
     const tick = async () => {
-      if (cancelled) {
+      if (cancelled || running) {
         return;
       }
 
-      // Background tabs do not need fresh data, so skip the network call but
-      // keep the loop alive so we resume as soon as the tab is visible again.
-      if (!isPageVisible()) {
+      running = true;
+
+      try {
+        // Background tabs do not need fresh data, so skip the network call but
+        // keep the loop alive so we resume as soon as the tab is visible again.
+        if (isPageVisible()) {
+          await runRefresh();
+        }
+      } finally {
+        running = false;
         schedule();
-        return;
       }
-
-      await runRefresh();
-      schedule();
     };
 
     const handleVisibilityChange = () => {
-      if (cancelled) {
+      if (cancelled || !isPageVisible()) {
         return;
       }
 
-      if (isPageVisible()) {
-        // Drop the pending tick and refresh right away so the user does not
-        // stare at stale balances for another full interval.
-        if (timer) {
-          clearTimeout(timer);
-          timer = undefined;
-        }
-        void tick();
+      // Drop the pending tick and refresh right away so the user does not stare
+      // at stale balances for another full interval. If a tick is already
+      // running, let it schedule the next one instead of starting a second.
+      if (running) {
+        return;
       }
+
+      if (timer) {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+
+      void tick();
     };
 
     void tick();

@@ -291,7 +291,10 @@ describe('sendXLM', () => {
       Networks.TESTNET
     );
 
-    assert.strictEqual(transaction.operations[0].destination.toString(), destination);
-    assert.strictEqual(transaction.operations[0].amount, '2.5');
+    const payment = transaction.operations[0];
+    const paymentDestination = payment.destination as { accountId: () => string } | undefined;
+
+    assert.strictEqual(paymentDestination?.accountId(), destination);
+    assert.strictEqual(payment.amount, '2.5');
   });
 });
