@@ -12,6 +12,11 @@ export const isPageVisible = () => {
   return document.visibilityState !== 'hidden';
 };
 
+interface InFlightRefresh {
+  key: string;
+  promise: Promise<boolean>;
+}
+
 interface UseAccountPollingOptions {
   /** Account to poll. Polling is disabled while this is empty. */
   publicKey: string;
@@ -39,7 +44,7 @@ export function useAccountPolling({
   // The in-flight refresh for a given account. Callers that ask for a refresh
   // while one is already running get the existing promise back instead of
   // starting a second request, so there is never more than one at a time.
-  const inFlightRef = useRef<{ key: string; promise: Promise<boolean> } | null>(null);
+  const inFlightRef = useRef<InFlightRefresh | null>(null);
   const loadRef = useRef(loadAccountData);
 
   useEffect(() => {
@@ -56,23 +61,28 @@ export function useAccountPolling({
       return existing.promise;
     }
 
-    const promise = (async () => {
+    // `entry` is fully assigned before the async body starts, so the cleanup
+    // below can compare against it without touching `promise` while it is still
+    // in its temporal dead zone.
+    const entry: InFlightRefresh = { key: publicKey, promise: undefined as unknown as Promise<boolean> };
+    entry.promise = (async () => {
       try {
         await loadRef.current(publicKey);
         return true;
       } catch {
         return false;
       } finally {
-        const current = inFlightRef.current;
-        if (current && current.promise === promise) {
+        // Only clear if this is still the current refresh; a newer one for a
+        // different account may already have replaced it.
+        if (inFlightRef.current === entry) {
           inFlightRef.current = null;
         }
       }
     })();
 
-    inFlightRef.current = { key: publicKey, promise };
+    inFlightRef.current = entry;
 
-    return promise;
+    return entry.promise;
   }, [publicKey]);
 
   useEffect(() => {
