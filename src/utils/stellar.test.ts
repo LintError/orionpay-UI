@@ -1,22 +1,40 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { Account, Asset, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
-import { BASE_FEE_STROOPS, createStellarAccount, getSuggestedFee, sendXLM, submitTransaction } from './stellar.ts';
+import { BASE_FEE_STROOPS, createStellarAccount, getSuggestedFee, sendXLM, submitTransaction } from './stellar';
 
 interface CapturedRequest {
   url: string;
   init: RequestInit;
 }
 
+function createMockResponse(body: unknown, ok = true, status = 200): Response {
+  return {
+    ok,
+    status,
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+    headers: new Headers(),
+    redirected: false,
+    statusText: ok ? 'OK' : 'Error',
+    type: 'basic',
+    url: '',
+    clone: () => createMockResponse(body, ok, status),
+    body: null,
+    bodyUsed: false,
+    arrayBuffer: async () => new ArrayBuffer(0),
+    blob: async () => new Blob(),
+    formData: async () => new FormData(),
+  } as Response;
+}
+
 describe('Stellar Utilities', () => {
   test('should create a valid Stellar keypair', async () => {
     const account = await createStellarAccount();
 
-    // Public key should start with G (Stellar public key format)
     assert.match(account.publicKey, /^G/);
     assert.strictEqual(account.publicKey.length, 56);
 
-    // Secret key should start with S (Stellar secret key format)
     assert.match(account.secretKey, /^S/);
     assert.strictEqual(account.secretKey.length, 56);
   });
@@ -59,12 +77,7 @@ describe('submitTransaction', () => {
     requests = [];
     globalThis.fetch = (async (url: any, init: any) => {
       requests.push({ url: String(url), init: init ?? {} });
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ hash: 'fake-hash' }),
-        text: async () => JSON.stringify({ hash: 'fake-hash' }),
-      };
+      return createMockResponse({ hash: 'fake-hash' });
     }) as typeof fetch;
   });
 
@@ -110,21 +123,11 @@ describe('getSuggestedFee', () => {
   const originalWarn = console.warn;
 
   const mockFeeStats = (stats: unknown) => {
-    globalThis.fetch = (async () => ({
-      ok: true,
-      status: 200,
-      json: async () => stats,
-      text: async () => JSON.stringify(stats),
-    })) as typeof fetch;
+    globalThis.fetch = (async () => createMockResponse(stats)) as typeof fetch;
   };
 
   const mockFailure = () => {
-    globalThis.fetch = (async () => ({
-      ok: false,
-      status: 503,
-      json: async () => ({}),
-      text: async () => 'service unavailable',
-    })) as typeof fetch;
+    globalThis.fetch = (async () => createMockResponse({}, false, 503)) as typeof fetch;
   };
 
   beforeEach(() => {
@@ -140,11 +143,7 @@ describe('getSuggestedFee', () => {
     let requestedUrl = '';
     globalThis.fetch = (async (url: any) => {
       requestedUrl = String(url);
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ min_fee: { base_fee: '100' }, fee_charged: { p90: '200' } }),
-      } as any;
+      return createMockResponse({ min_fee: { base_fee: '100' }, fee_charged: { p90: '200' } });
     }) as typeof fetch;
 
     await getSuggestedFee();
@@ -200,12 +199,7 @@ describe('sendXLM', () => {
   let sender: { publicKey: string; secretKey: string };
   let requests: CapturedRequest[] = [];
 
-  const jsonResponse = (body: unknown) => ({
-    ok: true,
-    status: 200,
-    json: async () => body,
-    text: async () => JSON.stringify(body),
-  });
+  const jsonResponse = (body: unknown) => createMockResponse(body);
 
   // Responds to the account lookup, the fee stats call and the submission.
   const mockHorizon = (feeStats?: unknown, feeStatsOk = true) => {
@@ -214,18 +208,18 @@ describe('sendXLM', () => {
       requests.push({ url: target, init: init ?? {} });
 
       if (target.endsWith('/transactions')) {
-        return jsonResponse({ hash: 'abc123' }) as any;
+        return jsonResponse({ hash: 'abc123' });
       }
       if (target.endsWith('/fee_stats')) {
-        return (feeStatsOk
+        return feeStatsOk
           ? jsonResponse(feeStats ?? {})
-          : { ok: false, status: 500, json: async () => ({}), text: async () => 'boom' }) as any;
+          : createMockResponse({}, false, 500);
       }
       return jsonResponse({
         account_id: sender.publicKey,
         sequence: '12345',
         balances: [],
-      }) as any;
+      });
     }) as typeof fetch;
   };
 
@@ -242,10 +236,14 @@ describe('sendXLM', () => {
 
   const submissionRequest = () => {
     const submission = requests.find((request) => request.url.endsWith('/transactions'));
-    assert.ok(submission, 'expected a submission request');
+    if (!submission) {
+      throw new Error('expected a submission request');
+    }
 
     const xdr = new URLSearchParams(String(submission.init.body)).get('tx');
-    assert.ok(xdr, 'expected a tx field in the submission body');
+    if (!xdr) {
+      throw new Error('expected a tx field in the submission body');
+    }
 
     return TransactionBuilder.fromXDR(xdr, Networks.TESTNET);
   };
@@ -288,14 +286,18 @@ describe('sendXLM', () => {
 
     assert.deepStrictEqual(result, { hash: 'abc123' });
 
-    const submission = submissionRequest();
-    assert.ok(submission, 'expected a submission request');
+    const submission = requests.find((request) => request.url.endsWith('/transactions'));
+    if (!submission) {
+      throw new Error('expected a submission request');
+    }
 
     const headers = submission.init.headers as Record<string, string>;
     assert.strictEqual(headers['Content-Type'], 'application/x-www-form-urlencoded');
 
     const xdr = new URLSearchParams(String(submission.init.body)).get('tx');
-    assert.ok(xdr, 'expected a tx field in the submission body');
+    if (!xdr) {
+      throw new Error('expected a tx field in the submission body');
+    }
 
     const transaction = TransactionBuilder.fromXDR(xdr, Networks.TESTNET);
 

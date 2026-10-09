@@ -121,8 +121,12 @@ const resolveTimeout = (timeout?: number) => {
     return timeout;
   }
 
-  const configured =
-    typeof process !== 'undefined' && process.env ? process.env.NEXT_PUBLIC_STELLAR_TX_TIMEOUT : undefined;
+  // In Next.js, NEXT_PUBLIC_* env vars are embedded at build time, so we can
+  // read them through process.env in both server and client bundles.
+  // The type guard avoids a TS error when running in a non-Node environment.
+  const configured = (typeof process !== 'undefined' && process.env
+    ? process.env.NEXT_PUBLIC_STELLAR_TX_TIMEOUT
+    : undefined) as string | undefined;
   const fromEnv = Number(configured);
 
   return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_TX_TIMEOUT_SECONDS;
