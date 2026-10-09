@@ -1,7 +1,12 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { Account, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
-import { BASE_FEE_STROOPS, createStellarAccount, getSuggestedFee, submitTransaction } from './stellar.ts';
+import { BASE_FEE_STROOPS, createStellarAccount, getSuggestedFee, sendXLM, submitTransaction } from './stellar.ts';
+
+interface CapturedRequest {
+  url: string;
+  init: RequestInit;
+}
 
 describe('Stellar Utilities', () => {
   test('should create a valid Stellar keypair', async () => {
@@ -24,11 +29,6 @@ describe('Stellar Utilities', () => {
     assert.notStrictEqual(account1.secretKey, account2.secretKey);
   });
 });
-
-interface CapturedRequest {
-  url: string;
-  init: RequestInit;
-}
 
 describe('submitTransaction', () => {
   const originalFetch = globalThis.fetch;
@@ -189,5 +189,109 @@ describe('getSuggestedFee', () => {
     mockFeeStats({});
 
     assert.strictEqual(await getSuggestedFee(), BASE_FEE_STROOPS);
+  });
+});
+
+describe('sendXLM', () => {
+  const originalFetch = globalThis.fetch;
+  const originalError = console.error;
+  const horizonUrl = 'https://horizon.test';
+
+  let sender: { publicKey: string; secretKey: string };
+  let requests: CapturedRequest[] = [];
+
+  const jsonResponse = (body: unknown) => ({
+    ok: true,
+    status: 200,
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  });
+
+  // Responds to the account lookup, the fee stats call and the submission.
+  const mockHorizon = (feeStats?: unknown, feeStatsOk = true) => {
+    globalThis.fetch = (async (url: any, init: any) => {
+      const target = String(url);
+      requests.push({ url: target, init: init ?? {} });
+
+      if (target.endsWith('/transactions')) {
+        return jsonResponse({ hash: 'abc123' }) as any;
+      }
+      if (target.endsWith('/fee_stats')) {
+        return (feeStatsOk
+          ? jsonResponse(feeStats ?? {})
+          : { ok: false, status: 500, json: async () => ({}), text: async () => 'boom' }) as any;
+      }
+      return jsonResponse({
+        account_id: sender.publicKey,
+        sequence: '12345',
+        balances: [],
+      }) as any;
+    }) as typeof fetch;
+  };
+
+  beforeEach(async () => {
+    sender = await createStellarAccount();
+    requests = [];
+    console.error = () => {};
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    console.error = originalError;
+  });
+
+  const submissionRequest = () => requests.find((request) => request.url.endsWith('/transactions'));
+  const submittedFee = () => {
+    const body = String(submissionRequest()?.init.body);
+    const xdr = new URLSearchParams(body).get('tx');
+    return TransactionBuilder.fromXDR(xdr as string, Networks.TESTNET).fee;
+  };
+
+  test('builds the transaction with the fee from /fee_stats', async () => {
+    mockHorizon({ min_fee: { base_fee: '100' }, fee_charged: { p90: '4200' } });
+
+    await sendXLM(sender.secretKey, Keypair.random().publicKey(), '1', { horizonUrl });
+
+    assert.strictEqual(submittedFee(), '4200');
+  });
+
+  test('builds the transaction with the base fee when /fee_stats fails', async () => {
+    mockHorizon(undefined, false);
+
+    await sendXLM(sender.secretKey, Keypair.random().publicKey(), '1', { horizonUrl });
+
+    assert.strictEqual(submittedFee(), BASE_FEE_STROOPS);
+  });
+
+  test('uses an explicitly provided fee without calling /fee_stats', async () => {
+    mockHorizon({ min_fee: { base_fee: '100' }, fee_charged: { p90: '4200' } });
+
+    await sendXLM(sender.secretKey, Keypair.random().publicKey(), '1', {
+      horizonUrl,
+      fee: '777',
+    });
+
+    assert.strictEqual(submittedFee(), '777');
+    assert.strictEqual(requests.some((request) => request.url.endsWith('/fee_stats')), false);
+  });
+
+  test('submits the signed transaction as form-urlencoded XDR', async () => {
+    mockHorizon({ min_fee: { base_fee: '100' }, fee_charged: { p90: '100' } });
+
+    const destination = Keypair.random().publicKey();
+    const result = await sendXLM(sender.secretKey, destination, '2.5', { horizonUrl });
+
+    assert.deepStrictEqual(result, { hash: 'abc123' });
+
+    const submission = submissionRequest();
+    assert.strictEqual((submission?.init.headers as Record<string, string>)['Content-Type'], 'application/x-www-form-urlencoded');
+
+    const transaction = TransactionBuilder.fromXDR(
+      new URLSearchParams(String(submission?.init.body)).get('tx') as string,
+      Networks.TESTNET
+    );
+
+    assert.strictEqual(transaction.operations[0].destination.toString(), destination);
+    assert.strictEqual(transaction.operations[0].amount, '2.5');
   });
 });
