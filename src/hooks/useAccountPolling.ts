@@ -36,31 +36,43 @@ export function useAccountPolling({
   loadAccountData,
   intervalMs = DEFAULT_POLL_INTERVAL_MS,
 }: UseAccountPollingOptions) {
-  // Tracks the account currently being fetched so overlapping runs for the
-  // same account are skipped while a different account can still load.
-  const inFlightRef = useRef<string | null>(null);
+  // The in-flight refresh for a given account. Callers that ask for a refresh
+  // while one is already running get the existing promise back instead of
+  // starting a second request, so there is never more than one at a time.
+  const inFlightRef = useRef<{ key: string; promise: Promise<boolean> } | null>(null);
   const loadRef = useRef(loadAccountData);
 
   useEffect(() => {
     loadRef.current = loadAccountData;
   }, [loadAccountData]);
 
-  const runRefresh = useCallback(async () => {
-    if (!publicKey || inFlightRef.current === publicKey) {
-      return false;
+  const runRefresh = useCallback((): Promise<boolean> => {
+    if (!publicKey) {
+      return Promise.resolve(false);
     }
 
-    inFlightRef.current = publicKey;
-    try {
-      await loadRef.current(publicKey);
-      return true;
-    } catch {
-      return false;
-    } finally {
-      if (inFlightRef.current === publicKey) {
-        inFlightRef.current = null;
-      }
+    const existing = inFlightRef.current;
+    if (existing && existing.key === publicKey) {
+      return existing.promise;
     }
+
+    const promise = (async () => {
+      try {
+        await loadRef.current(publicKey);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        const current = inFlightRef.current;
+        if (current && current.promise === promise) {
+          inFlightRef.current = null;
+        }
+      }
+    })();
+
+    inFlightRef.current = { key: publicKey, promise };
+
+    return promise;
   }, [publicKey]);
 
   useEffect(() => {
