@@ -1,7 +1,7 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { Account, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
-import { createStellarAccount, submitTransaction } from './stellar.ts';
+import { BASE_FEE_STROOPS, createStellarAccount, getSuggestedFee, submitTransaction } from './stellar.ts';
 
 describe('Stellar Utilities', () => {
   test('should create a valid Stellar keypair', async () => {
@@ -102,5 +102,92 @@ describe('submitTransaction', () => {
     await submitTransaction(buildSignedTransaction(), 'https://horizon.example.com');
 
     assert.strictEqual(requests[0].url, 'https://horizon.example.com/transactions');
+  });
+});
+
+describe('getSuggestedFee', () => {
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+
+  const mockFeeStats = (stats: unknown) => {
+    globalThis.fetch = (async () => ({
+      ok: true,
+      status: 200,
+      json: async () => stats,
+      text: async () => JSON.stringify(stats),
+    })) as typeof fetch;
+  };
+
+  const mockFailure = () => {
+    globalThis.fetch = (async () => ({
+      ok: false,
+      status: 503,
+      json: async () => ({}),
+      text: async () => 'service unavailable',
+    })) as typeof fetch;
+  };
+
+  beforeEach(() => {
+    console.warn = () => {};
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
+  });
+
+  test('queries the fee_stats endpoint', async () => {
+    let requestedUrl = '';
+    globalThis.fetch = (async (url: any) => {
+      requestedUrl = String(url);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ min_fee: { base_fee: '100' }, fee_charged: { p90: '200' } }),
+      } as any;
+    }) as typeof fetch;
+
+    await getSuggestedFee();
+
+    assert.match(requestedUrl, /\/fee_stats$/);
+  });
+
+  test('uses the p90 fee when it exceeds the base fee', async () => {
+    mockFeeStats({
+      min_fee: { base_fee: '100' },
+      fee_charged: { p90: '5000' },
+    });
+
+    assert.strictEqual(await getSuggestedFee(), '5000');
+  });
+
+  test('falls back to the base fee when the network is quiet', async () => {
+    mockFeeStats({
+      min_fee: { base_fee: '100' },
+      fee_charged: { p90: '100' },
+    });
+
+    assert.strictEqual(await getSuggestedFee(), '100');
+  });
+
+  test('never returns a fee below the base fee', async () => {
+    mockFeeStats({
+      min_fee: { base_fee: '250' },
+      fee_charged: { p90: '10' },
+    });
+
+    assert.strictEqual(await getSuggestedFee(), '250');
+  });
+
+  test('falls back to the base fee when the fee endpoint fails', async () => {
+    mockFailure();
+
+    assert.strictEqual(await getSuggestedFee(), BASE_FEE_STROOPS);
+  });
+
+  test('falls back to the base fee when the response is malformed', async () => {
+    mockFeeStats({});
+
+    assert.strictEqual(await getSuggestedFee(), BASE_FEE_STROOPS);
   });
 });
