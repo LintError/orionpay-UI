@@ -304,7 +304,16 @@ describe('sendXLM', () => {
     // operations are typed loosely by the sdk, so read the fields we care about
     const payment = transaction.operations[0] as any;
 
-    assert.strictEqual(payment.destination.accountId(), destination);
-    assert.strictEqual(payment.amount, '2.5');
+    // `destination` is exposed as a plain string by @stellar/stellar-sdk 12.x
+    // and as an Account (with accountId()) by older versions - accept either.
+    const paymentDestination = payment.destination;
+    const destinationId =
+      typeof paymentDestination === 'string'
+        ? paymentDestination
+        : paymentDestination.accountId();
+
+    assert.strictEqual(destinationId, destination);
+    // `amount` is normalized to 7 decimal places (e.g. "2.5000000").
+    assert.strictEqual(Number(payment.amount), 2.5);
   });
 });
