@@ -259,21 +259,40 @@ export default function StellarWallet() {
             </div>
 
             {/* Recent Transactions */}
-            {transactions.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-sm font-semibold mb-3">Recent Transactions</h4>
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold mb-3">Recent Transactions</h4>
+              {transactions.length > 0 ? (
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {transactions.map((tx) => (
                     <div key={tx.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-xs">
-                      <div className="flex justify-between">
-                        <span className="font-mono truncate">{tx.id.slice(0, 12)}...</span>
-                        <span className="text-green-500">{tx.amount} XLM</span>
+                      <div className="flex justify-between gap-2">
+                        <span className="font-mono truncate">
+                          {tx.id ? `${tx.id.slice(0, 12)}...` : tx.label}
+                        </span>
+                        {tx.isPayment ? (
+                          <span className="text-green-500 whitespace-nowrap">
+                            {tx.amount} {tx.asset}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 whitespace-nowrap">{tx.label}</span>
+                        )}
                       </div>
+                      {tx.isPayment && tx.destination && (
+                        <div className="mt-1 text-gray-500 dark:text-gray-400 truncate">
+                          To {tx.destination.slice(0, 12)}...
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {refreshError
+                    ? 'Could not load transactions. Try refreshing.'
+                    : 'No transactions yet.'}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
