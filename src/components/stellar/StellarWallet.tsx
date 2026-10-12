@@ -7,27 +7,23 @@ import {
   getAccountBalance, 
   fundTestnetAccount, 
   sendXLM,
-  getTransactionHistory
+  getTransactionHistory,
+  TransactionHistoryEntry
 } from '@/src/utils/stellar';
 import toast from 'react-hot-toast';
+import { toastError } from '@/src/utils/toast';
 import Button from '@/src/components/ui/Button';
 import Input from '@/src/components/ui/Input';
 import Card from '@/src/components/ui/Card';
 import { useAccountPolling } from '@/src/hooks/useAccountPolling';
 
-interface Transaction {
-  id: string;
-  created_at: string;
-  source_account: string;
-  to: string;
-  amount: string;
-}
-
 export default function StellarWallet() {
   const [publicKey, setPublicKey] = useState<string>('');
   const [secretKey, setSecretKey] = useState<string>('');
   const [balances, setBalances] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<TransactionHistoryEntry[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [copied, setCopied] = useState<string>('');
   const [sendForm, setSendForm] = useState({
@@ -38,6 +34,9 @@ export default function StellarWallet() {
   // Incremented per request so responses that arrive out of order (slow Horizon,
   // slow connection) are discarded instead of overwriting fresher state.
   const requestIdRef = useRef<number>(0);
+  // Last error message we toasted. Polling runs every 30s, so this keeps a
+  // persistent outage from stacking an identical toast on every tick.
+  const lastErrorRef = useRef<string | null>(null);
 
   // Create new account
   const handleCreateAccount = async () => {
@@ -52,8 +51,9 @@ export default function StellarWallet() {
       await fundTestnetAccount(account.publicKey);
       toast.success('Testnet XLM added to your account!');
       
-      // Load balances
-      await loadAccountData(account.publicKey);
+      // Load balances. A refresh failure surfaces its own toast, so it must not
+      // turn a successful account creation into a "Failed to create account".
+      await loadAccountData(account.publicKey).catch(() => {});
     } catch (error) {
       toast.error('Failed to create account');
     } finally {
@@ -78,20 +78,25 @@ export default function StellarWallet() {
       }
 
       setBalances(accountBalances);
-      setTransactions(
-        txHistory.map((tx: any) => ({
-          id: tx.id,
-          created_at: tx.created_at,
-          source_account: tx.source_account,
-          to: tx.operations?.records?.[0]?.destination || 'unknown',
-          amount: tx.operations?.records?.[0]?.amount || '0'
-        }))
-      );
+      setTransactions(txHistory);
+      setLastUpdated(new Date());
+      setRefreshError(null);
+      lastErrorRef.current = null;
     } catch (error) {
       if (requestId !== requestIdRef.current) {
         return;
       }
       console.error('Error loading account data:', error);
+      const message = 'Failed to refresh balances';
+      setRefreshError(message);
+      // Only toast once per outage; the same failure repeats on every poll.
+      if (lastErrorRef.current !== message) {
+        toastError(message);
+        lastErrorRef.current = message;
+      }
+      // Re-throw so useAccountPolling() can report the failure and callers can
+      // skip their success toast.
+      throw error;
     }
   }, []);
 
@@ -104,8 +109,10 @@ export default function StellarWallet() {
   // Refresh balances
   const handleRefresh = async () => {
     if (publicKey) {
-      await refresh();
-      toast.success('Balances refreshed');
+      const ok = await refresh();
+      if (ok) {
+        toast.success('Balances refreshed');
+      }
     }
   };
 
@@ -211,6 +218,16 @@ export default function StellarWallet() {
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white">
               <p className="text-sm opacity-80 mb-1">Available Balance</p>
               <p className="text-4xl font-bold">{xlmBalance.toFixed(2)} XLM</p>
+              <div className="mt-2 text-xs opacity-90" aria-live="polite">
+                {refreshError ? (
+                  <span className="inline-flex items-center gap-1 text-yellow-200">
+                    <AlertCircle className="w-3 h-3" />
+                    Stale data — refresh failed
+                  </span>
+                ) : lastUpdated ? (
+                  <span>Last updated {lastUpdated.toLocaleTimeString()}</span>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -242,21 +259,40 @@ export default function StellarWallet() {
             </div>
 
             {/* Recent Transactions */}
-            {transactions.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-sm font-semibold mb-3">Recent Transactions</h4>
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold mb-3">Recent Transactions</h4>
+              {transactions.length > 0 ? (
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {transactions.map((tx) => (
                     <div key={tx.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-xs">
-                      <div className="flex justify-between">
-                        <span className="font-mono truncate">{tx.id.slice(0, 12)}...</span>
-                        <span className="text-green-500">{tx.amount} XLM</span>
+                      <div className="flex justify-between gap-2">
+                        <span className="font-mono truncate">
+                          {tx.id ? `${tx.id.slice(0, 12)}...` : tx.label}
+                        </span>
+                        {tx.isPayment ? (
+                          <span className="text-green-500 whitespace-nowrap">
+                            {tx.amount} {tx.asset}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 whitespace-nowrap">{tx.label}</span>
+                        )}
                       </div>
+                      {tx.isPayment && tx.destination && (
+                        <div className="mt-1 text-gray-500 dark:text-gray-400 truncate">
+                          To {tx.destination.slice(0, 12)}...
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {refreshError
+                    ? 'Could not load transactions. Try refreshing.'
+                    : 'No transactions yet.'}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
