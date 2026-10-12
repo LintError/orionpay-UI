@@ -218,6 +218,16 @@ export default function StellarWallet() {
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white">
               <p className="text-sm opacity-80 mb-1">Available Balance</p>
               <p className="text-4xl font-bold">{xlmBalance.toFixed(2)} XLM</p>
+              <div className="mt-2 text-xs opacity-90" aria-live="polite">
+                {refreshError ? (
+                  <span className="inline-flex items-center gap-1 text-yellow-200">
+                    <AlertCircle className="w-3 h-3" />
+                    Stale data — refresh failed
+                  </span>
+                ) : lastUpdated ? (
+                  <span>Last updated {lastUpdated.toLocaleTimeString()}</span>
+                ) : null}
+              </div>
             </div>
           </div>
 
