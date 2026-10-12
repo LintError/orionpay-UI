@@ -173,15 +173,113 @@ export const sendXLM = async (
   }
 };
 
-// Get transaction history
-export const getTransactionHistory = async (publicKey: string) => {
+/**
+ * Shape of a record returned by Horizon's `/accounts/{id}/payments` endpoint.
+ * Unlike `/transactions`, payment records carry the counterparty and amount
+ * inline, so the history list does not need a follow-up operations request.
+ */
+export interface StellarPaymentRecord {
+  id?: string;
+  type?: string;
+  created_at?: string;
+  transaction_hash?: string;
+  from?: string;
+  to?: string;
+  funder?: string;
+  account?: string;
+  into?: string;
+  starting_balance?: string;
+  amount?: string;
+  asset_type?: string;
+  asset_code?: string;
+}
+
+export interface TransactionHistoryEntry {
+  id: string;
+  type: string;
+  /** Human readable label, mainly used for non-payment operations. */
+  label: string;
+  createdAt: string;
+  sourceAccount: string;
+  destination: string;
+  amount: string;
+  asset: string;
+  isPayment: boolean;
+}
+
+const NON_PAYMENT_LABELS: Record<string, string> = {
+  create_account: 'Account created',
+  account_merge: 'Account merged',
+  path_payment_strict_send: 'Path payment (sent)',
+  path_payment_strict_receive: 'Path payment (received)',
+};
+
+export const isPaymentType = (type: string): boolean =>
+  type === 'payment' || type.startsWith('path_payment');
+
+export const getHistoryLabel = (type: string): string => {
+  if (NON_PAYMENT_LABELS[type]) {
+    return NON_PAYMENT_LABELS[type];
+  }
+  return isPaymentType(type) ? 'Payment' : 'Transaction';
+};
+
+/**
+ * Normalizes a Horizon payment record into the flat shape the wallet UI
+ * renders. Payment operations expose `from`/`to`/`amount`; other operation
+ * types (create_account, account_merge, ...) use different fields, so we map
+ * them explicitly and surface a label instead of inventing a destination.
+ */
+export const mapPaymentToHistoryEntry = (
+  payment: StellarPaymentRecord
+): TransactionHistoryEntry => {
+  const type = payment.type ?? 'unknown';
+
+  let sourceAccount = payment.from ?? '';
+  let destination = payment.to ?? '';
+  let amount = payment.amount ?? '';
+
+  if (type === 'create_account') {
+    sourceAccount = payment.funder ?? '';
+    destination = payment.account ?? '';
+    amount = payment.starting_balance ?? '';
+  } else if (type === 'account_merge') {
+    sourceAccount = payment.account ?? '';
+    destination = payment.into ?? '';
+    amount = '';
+  }
+
+  const asset =
+    payment.asset_type === 'native' ? 'XLM' : payment.asset_code ?? '';
+
+  return {
+    id: payment.id ?? payment.transaction_hash ?? '',
+    type,
+    label: getHistoryLabel(type),
+    createdAt: payment.created_at ?? '',
+    sourceAccount,
+    destination,
+    amount,
+    asset,
+    isPayment: isPaymentType(type),
+  };
+};
+
+// Get transaction history.
+// The payments endpoint is used (rather than /transactions) because a
+// transaction record does not embed its operations, which is why the history
+// list previously always rendered "unknown / 0 XLM".
+export const getTransactionHistory = async (
+  publicKey: string
+): Promise<TransactionHistoryEntry[]> => {
   try {
-    const transactions = await fetchJson(
-      `${HORIZON_URL}/accounts/${publicKey}/transactions?order=desc&limit=10&include_failed=false`
+    const payments = await fetchJson(
+      `${HORIZON_URL}/accounts/${publicKey}/payments?order=desc&limit=10&include_failed=false`
     );
-    return transactions._embedded?.records ?? [];
+    const records: StellarPaymentRecord[] = payments._embedded?.records ?? [];
+    return records.map(mapPaymentToHistoryEntry);
   } catch (error) {
-    console.error('Error fetching transactions:', error);
+    console.error('Error fetching transaction history:', error);
     throw error;
   }
 };
