@@ -50,6 +50,20 @@ All issues related to Stellar blockchain integration start in the `src/utils/ste
 - ✅ Send XLM payments
 - ✅ View transaction history
 
+## Testing
+Tests run with [Vitest](https://vitest.dev/) and live next to the code they cover (e.g. `src/utils/stellar.test.ts`):
+
+```bash
+npm test             # run the suite once (CI uses this)
+npm run test:watch   # re-run on change while developing
+```
+
+Vitest resolves the `@/` path alias from `tsconfig.json` (see `vitest.config.ts`), so tests can import modules exactly as the app does:
+
+```ts
+import { createStellarAccount } from '@/src/utils/stellar';
+```
+
 ## Code Standards
 - Use TypeScript for all new code
 - Follow existing code style and formatting
