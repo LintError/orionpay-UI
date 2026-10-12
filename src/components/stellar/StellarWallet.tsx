@@ -7,27 +7,23 @@ import {
   getAccountBalance, 
   fundTestnetAccount, 
   sendXLM,
-  getTransactionHistory
+  getTransactionHistory,
+  TransactionHistoryEntry
 } from '@/src/utils/stellar';
 import toast from 'react-hot-toast';
+import { toastError } from '@/src/utils/toast';
 import Button from '@/src/components/ui/Button';
 import Input from '@/src/components/ui/Input';
 import Card from '@/src/components/ui/Card';
 import { useAccountPolling } from '@/src/hooks/useAccountPolling';
 
-interface Transaction {
-  id: string;
-  created_at: string;
-  source_account: string;
-  to: string;
-  amount: string;
-}
-
 export default function StellarWallet() {
   const [publicKey, setPublicKey] = useState<string>('');
   const [secretKey, setSecretKey] = useState<string>('');
   const [balances, setBalances] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<TransactionHistoryEntry[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [copied, setCopied] = useState<string>('');
   const [sendForm, setSendForm] = useState({
@@ -38,6 +34,9 @@ export default function StellarWallet() {
   // Incremented per request so responses that arrive out of order (slow Horizon,
   // slow connection) are discarded instead of overwriting fresher state.
   const requestIdRef = useRef<number>(0);
+  // Last error message we toasted. Polling runs every 30s, so this keeps a
+  // persistent outage from stacking an identical toast on every tick.
+  const lastErrorRef = useRef<string | null>(null);
 
   // Create new account
   const handleCreateAccount = async () => {
@@ -52,8 +51,9 @@ export default function StellarWallet() {
       await fundTestnetAccount(account.publicKey);
       toast.success('Testnet XLM added to your account!');
       
-      // Load balances
-      await loadAccountData(account.publicKey);
+      // Load balances. A refresh failure surfaces its own toast, so it must not
+      // turn a successful account creation into a "Failed to create account".
+      await loadAccountData(account.publicKey).catch(() => {});
     } catch (error) {
       toast.error('Failed to create account');
     } finally {
@@ -78,20 +78,25 @@ export default function StellarWallet() {
       }
 
       setBalances(accountBalances);
-      setTransactions(
-        txHistory.map((tx: any) => ({
-          id: tx.id,
-          created_at: tx.created_at,
-          source_account: tx.source_account,
-          to: tx.operations?.records?.[0]?.destination || 'unknown',
-          amount: tx.operations?.records?.[0]?.amount || '0'
-        }))
-      );
+      setTransactions(txHistory);
+      setLastUpdated(new Date());
+      setRefreshError(null);
+      lastErrorRef.current = null;
     } catch (error) {
       if (requestId !== requestIdRef.current) {
         return;
       }
       console.error('Error loading account data:', error);
+      const message = 'Failed to refresh balances';
+      setRefreshError(message);
+      // Only toast once per outage; the same failure repeats on every poll.
+      if (lastErrorRef.current !== message) {
+        toastError(message);
+        lastErrorRef.current = message;
+      }
+      // Re-throw so useAccountPolling() can report the failure and callers can
+      // skip their success toast.
+      throw error;
     }
   }, []);
 
@@ -104,8 +109,10 @@ export default function StellarWallet() {
   // Refresh balances
   const handleRefresh = async () => {
     if (publicKey) {
-      await refresh();
-      toast.success('Balances refreshed');
+      const ok = await refresh();
+      if (ok) {
+        toast.success('Balances refreshed');
+      }
     }
   };
 
