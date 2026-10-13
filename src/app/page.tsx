@@ -24,12 +24,9 @@ import {
   Zap,
   Activity,
   LineChart,
-  Sun,
-  Moon,
-  Palette
 } from 'lucide-react';
-import { useTheme } from '@/src/contexts/ThemeContext';
 import StellarWalletLoader from '@/src/components/stellar/StellarWalletLoader';
+import ThemeControls from '@/src/components/theme/ThemeControls';
 
 // Chain logos as simple SVGs
 const backgroundParticles = Array.from({ length: 50 }, (_, i) => ({
@@ -114,9 +111,6 @@ function FeatureCard({ icon: Icon, title, description, delay = 0 }: { icon: any;
 // Main Home Component
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
-  const [customizerOpen, setCustomizerOpen] = useState(false);
-  const { theme, setTheme, customColors, updateCustomColors, resetCustomColors } = useTheme();
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 0.5], [0, -150]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
@@ -186,11 +180,7 @@ export default function Home() {
   ];
 
   return (
-    <div className={`min-h-screen overflow-x-hidden transition-colors duration-300 ${
-      theme === 'light' ? 'bg-gray-50 text-gray-900' : 
-      theme === 'dark' ? 'bg-[#050816] text-white' : 
-      'bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900'
-    }`}>
+    <div className="theme-page min-h-screen overflow-x-hidden">
       {/* Animated Background Particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {backgroundParticles.map((particle) => (
@@ -216,9 +206,7 @@ export default function Home() {
       </div>
 
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-40 backdrop-blur-xl border-b transition-colors duration-300 ${
-        theme === 'light' || theme === 'multi-color' ? 'bg-white/80 border-gray-200' : 'bg-[#050816]/80 border-white/5'
-      }`}>
+      <nav className="theme-nav fixed left-0 right-0 top-0 z-40 border-b backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
@@ -232,218 +220,19 @@ export default function Home() {
             </div>
             
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className={`transition-colors text-sm ${
-                theme === 'light' || theme === 'multi-color' ? 'text-gray-700/70 hover:text-gray-900' : 'text-white/70 hover:text-white'
-              }`}>Features</a>
-              <a href="#how-it-works" className={`transition-colors text-sm ${
-                theme === 'light' || theme === 'multi-color' ? 'text-gray-700/70 hover:text-gray-900' : 'text-white/70 hover:text-white'
-              }`}>How it Works</a>
-              <a href="#ai" className={`transition-colors text-sm ${
-                theme === 'light' || theme === 'multi-color' ? 'text-gray-700/70 hover:text-gray-900' : 'text-white/70 hover:text-white'
-              }`}>AI Engine</a>
-              <a href="#docs" className={`transition-colors text-sm ${
-                theme === 'light' || theme === 'multi-color' ? 'text-gray-700/70 hover:text-gray-900' : 'text-white/70 hover:text-white'
-              }`}>Documentation</a>
+              <a href="#features" className="theme-muted-link text-sm transition-colors">Features</a>
+              <a href="#how-it-works" className="theme-muted-link text-sm transition-colors">How it Works</a>
+              <a href="#ai" className="theme-muted-link text-sm transition-colors">AI Engine</a>
+              <a href="#docs" className="theme-muted-link text-sm transition-colors">Documentation</a>
             </div>
 
             <div className="hidden md:flex items-center gap-4">
-              {/* Theme Toggle Button */}
-              <div className="relative">
-                <button 
-                  onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    theme === 'light' || theme === 'multi-color' 
-                      ? 'bg-gray-100 hover:bg-gray-200 text-gray-700/70 hover:text-gray-900' 
-                      : 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white'
-                  }`}
-                >
-                  {theme === 'light' ? <Sun className="w-5 h-5" /> : theme === 'dark' ? <Moon className="w-5 h-5" /> : <Palette className="w-5 h-5" />}
-                </button>
-                {themeDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`absolute right-0 mt-2 w-40 rounded-xl shadow-xl overflow-hidden z-50 border ${
-                      theme === 'light' || theme === 'multi-color'
-                        ? 'bg-white border-gray-200'
-                        : 'bg-[#0F172A] border-white/10'
-                    }`}
-                  >
-                    <button
-                      onClick={() => { setTheme('light'); setThemeDropdownOpen(false); }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        theme === 'light' ? 'text-[#4F8CFF]' : 
-                        'text-gray-700/70 hover:text-gray-900 hover:bg-gray-50 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/5'
-                      }`}
-                    >
-                      <Sun className="w-4 h-4" /> Light Mode
-                    </button>
-                    <button
-                      onClick={() => { setTheme('dark'); setThemeDropdownOpen(false); }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        theme === 'dark' ? 'text-[#4F8CFF]' : 
-                        'text-gray-700/70 hover:text-gray-900 hover:bg-gray-50 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/5'
-                      }`}
-                    >
-                      <Moon className="w-4 h-4" /> Dark Mode
-                    </button>
-                    <button
-                      onClick={() => { setTheme('multi-color'); setThemeDropdownOpen(false); }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        theme === 'multi-color' ? 'text-[#4F8CFF]' : 
-                        'text-gray-700/70 hover:text-gray-900 hover:bg-gray-50 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/5'
-                      }`}
-                    >
-                      <Palette className="w-4 h-4" /> Multi-Color
-                    </button>
-                    {theme === 'multi-color' && (
-                      <button
-                        onClick={() => { setCustomizerOpen(!customizerOpen); setThemeDropdownOpen(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm border-t border-gray-200 dark:border-white/10 transition-colors text-[#4F8CFF] hover:bg-gray-50 dark:hover:bg-white/5"
-                      >
-                        <Palette className="w-4 h-4" /> Customize Colors
-                      </button>
-                    )}
-                  </motion.div>
-                )}
-              </div>
-              
-              {/* Custom Color Picker Panel */}
-              {customizerOpen && theme === 'multi-color' && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="fixed top-20 right-4 w-80 bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-6 z-50"
-                >
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Customize Colors</h3>
-                    <button 
-                      onClick={() => setCustomizerOpen(false)}
-                      className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 dark:text-white/70"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-5">
-                    {/* Primary Color */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">Primary Color</label>
-                      <div className="flex items-center gap-3">
-                        <input 
-                          type="color" 
-                          value={customColors.primary}
-                          onChange={(e) => updateCustomColors({ primary: e.target.value })}
-                          className="w-12 h-10 rounded-lg cursor-pointer border-0"
-                        />
-                        <input 
-                          type="text" 
-                          value={customColors.primary}
-                          onChange={(e) => updateCustomColors({ primary: e.target.value })}
-                          className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Secondary Color */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">Secondary Color</label>
-                      <div className="flex items-center gap-3">
-                        <input 
-                          type="color" 
-                          value={customColors.secondary}
-                          onChange={(e) => updateCustomColors({ secondary: e.target.value })}
-                          className="w-12 h-10 rounded-lg cursor-pointer border-0"
-                        />
-                        <input 
-                          type="text" 
-                          value={customColors.secondary}
-                          onChange={(e) => updateCustomColors({ secondary: e.target.value })}
-                          className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Accent Color */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">Accent Color</label>
-                      <div className="flex items-center gap-3">
-                        <input 
-                          type="color" 
-                          value={customColors.accent}
-                          onChange={(e) => updateCustomColors({ accent: e.target.value })}
-                          className="w-12 h-10 rounded-lg cursor-pointer border-0"
-                        />
-                        <input 
-                          type="text" 
-                          value={customColors.accent}
-                          onChange={(e) => updateCustomColors({ accent: e.target.value })}
-                          className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Background Color */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">Background Color</label>
-                      <div className="flex items-center gap-3">
-                        <input 
-                          type="color" 
-                          value={customColors.background}
-                          onChange={(e) => updateCustomColors({ background: e.target.value })}
-                          className="w-12 h-10 rounded-lg cursor-pointer border-0"
-                        />
-                        <input 
-                          type="text" 
-                          value={customColors.background}
-                          onChange={(e) => updateCustomColors({ background: e.target.value })}
-                          className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Text Color */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">Text Color</label>
-                      <div className="flex items-center gap-3">
-                        <input 
-                          type="color" 
-                          value={customColors.text}
-                          onChange={(e) => updateCustomColors({ text: e.target.value })}
-                          className="w-12 h-10 rounded-lg cursor-pointer border-0"
-                        />
-                        <input 
-                          type="text" 
-                          value={customColors.text}
-                          onChange={(e) => updateCustomColors({ text: e.target.value })}
-                          className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Reset Button */}
-                    <button
-                      onClick={resetCustomColors}
-                      className="w-full mt-4 py-3 px-4 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-white transition-colors"
-                    >
-                      Reset to Defaults
-                    </button>
-                  </div>
-                </motion.div>
-              )}
+              <ThemeControls />
               {/* Connect Wallet Button */}
-              <button className={`transition-colors text-sm px-4 py-2 rounded-lg flex items-center gap-2 ${
-                theme === 'light' || theme === 'multi-color'
-                  ? 'text-gray-700/70 hover:text-gray-900 hover:bg-gray-100'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}>
+              <button className="theme-muted-button flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors">
                 <Wallet className="w-4 h-4" /> Connect Wallet
               </button>
-              <button className={`transition-colors text-sm px-4 py-2 ${
-                theme === 'light' || theme === 'multi-color'
-                  ? 'text-gray-700/70 hover:text-gray-900'
-                  : 'text-white/70 hover:text-white'
-              }`}>
+              <button className="theme-muted-link px-4 py-2 text-sm transition-colors">
                 Sign In
               </button>
               <button className="bg-gradient-to-r from-[#4F8CFF] to-[#8B5CF6] px-5 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity text-white">
