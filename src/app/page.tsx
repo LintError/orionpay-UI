@@ -769,7 +769,7 @@ export default function Home() {
             <p className="text-white/60 text-center mb-12 max-w-2xl mx-auto">
               Experience the power of Stellar&apos;s blockchain with our integrated wallet. Create an account, receive testnet XLM, and send payments in seconds.
             </p>
-            {typeof window !== 'undefined' && <StellarWalletLoader />}
+            <StellarWalletLoader />
           </motion.div>
         </div>
       </section>
