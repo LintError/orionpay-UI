@@ -8,6 +8,15 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+  --theme-page-background: #f9fafb;
+  --theme-text: #111827;
+  --theme-muted-text: rgba(55, 65, 81, 0.7);
+  --theme-nav-background: rgba(255, 255, 255, 0.8);
+  --theme-panel-background: #ffffff;
+  --theme-control-background: #f3f4f6;
+  --theme-control-hover: #e5e7eb;
+  --theme-border: #e5e7eb;
+  --theme-primary: #4f8cff;
   --toast-bg: #ffffff;
   --toast-text: #1f2937;
   --toast-success: #10b981;
@@ -21,6 +30,15 @@
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 17, 24, 39;
   --background-end-rgb: 0, 0, 0;
+  --theme-page-background: #050816;
+  --theme-text: #ffffff;
+  --theme-muted-text: rgba(255, 255, 255, 0.7);
+  --theme-nav-background: rgba(5, 8, 22, 0.8);
+  --theme-panel-background: #0f172a;
+  --theme-control-background: rgba(255, 255, 255, 0.05);
+  --theme-control-hover: rgba(255, 255, 255, 0.1);
+  --theme-border: rgba(255, 255, 255, 0.1);
+  --theme-primary: #4f8cff;
   --toast-bg: #1f2937;
   --toast-text: #f9fafb;
   --toast-success: #34d399;
@@ -31,9 +49,15 @@
 
 /* Multi-color theme */
 .multi-color {
-  --foreground-rgb: var(--custom-text-rgb, 31, 41, 55);
-  --background-start-rgb: var(--custom-background-start-rgb, 249, 250, 251);
-  --background-end-rgb: var(--custom-background-end-rgb, 243, 244, 246);
+  --theme-page-background: var(--custom-background, #f9fafb);
+  --theme-text: var(--custom-text, #1f2937);
+  --theme-muted-text: color-mix(in srgb, var(--custom-text, #1f2937) 70%, transparent);
+  --theme-nav-background: color-mix(in srgb, var(--custom-background, #f9fafb) 80%, transparent);
+  --theme-panel-background: color-mix(in srgb, var(--custom-background, #f9fafb) 92%, white);
+  --theme-control-background: color-mix(in srgb, var(--custom-primary, #4f8cff) 10%, transparent);
+  --theme-control-hover: color-mix(in srgb, var(--custom-primary, #4f8cff) 18%, transparent);
+  --theme-border: color-mix(in srgb, var(--custom-primary, #4f8cff) 25%, transparent);
+  --theme-primary: var(--custom-primary, #4f8cff);
   --toast-bg: linear-gradient(135deg, var(--custom-primary, #667eea) 0%, var(--custom-secondary, #764ba2) 100%);
   --toast-text: #ffffff;
   --toast-success: #10b981;
@@ -43,19 +67,75 @@
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: var(--theme-text);
+  background: var(--theme-page-background);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Theme transitions for all elements */
-* {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+.theme-page {
+  color: var(--theme-text);
+  background: var(--theme-page-background);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.theme-nav {
+  background: var(--theme-nav-background);
+  border-color: var(--theme-border);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.theme-panel {
+  color: var(--theme-text);
+  background: var(--theme-panel-background);
+  border-color: var(--theme-border);
+}
+
+.theme-muted-link,
+.theme-label {
+  color: var(--theme-muted-text);
+}
+
+.theme-muted-link:hover {
+  color: var(--theme-text);
+}
+
+.theme-control,
+.theme-muted-button {
+  color: var(--theme-muted-text);
+  background: var(--theme-control-background);
+}
+
+.theme-control:hover,
+.theme-muted-button:hover {
+  color: var(--theme-text);
+  background: var(--theme-control-hover);
+}
+
+.theme-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--theme-muted-text);
+  border-color: var(--theme-border);
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.theme-menu-item:hover {
+  color: var(--theme-text);
+  background: var(--theme-control-background);
+}
+
+.theme-menu-item.is-active {
+  color: var(--theme-primary);
+}
+
+.theme-input {
+  color: var(--theme-text);
+  background: var(--theme-control-background);
+  border-color: var(--theme-border);
 }
 
 /* Toast theme classes */

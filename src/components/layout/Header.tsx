@@ -7,9 +7,27 @@ import { Menu, X, Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { motion } from 'framer-motion';
 
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      className="rounded-lg bg-white/5 p-2 transition-colors duration-200 hover:bg-white/10"
+      aria-label="Toggle theme"
+    >
+      {theme === 'dark' ? (
+        <Sun className="h-5 w-5 text-white" />
+      ) : (
+        <Moon className="h-5 w-5 text-white" />
+      )}
+    </button>
+  );
+}
+
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
 
   const navLinks = [
     { name: 'Features', href: '#features' },
@@ -49,13 +67,7 @@ const Header = () => {
 
           {/* CTA and Theme Toggle */}
           <div className="hidden md:flex items-center space-x-4">
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-5 h-5 text-white" /> : <Moon className="w-5 h-5 text-white" />}
-            </button>
+            <ThemeToggle />
             <Link
               href="/login"
               className="text-white/70 hover:text-white transition-colors duration-200 text-sm font-medium"
@@ -72,13 +84,7 @@ const Header = () => {
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-2">
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-5 h-5 text-white" /> : <Moon className="w-5 h-5 text-white" />}
-            </button>
+            <ThemeToggle />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200"

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 
 type Theme = 'light' | 'dark' | 'multi-color';
 
@@ -71,22 +71,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.setProperty('--custom-text', customColors.text);
   }, [customColors]);
 
-  const updateCustomColors = (newColors: Partial<CustomColors>) => {
+  const updateCustomColors = useCallback((newColors: Partial<CustomColors>) => {
     setCustomColors(prev => ({ ...prev, ...newColors }));
-  };
+  }, []);
 
-  const resetCustomColors = () => {
+  const resetCustomColors = useCallback(() => {
     setCustomColors(defaultCustomColors);
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    theme,
+    setTheme,
+    customColors,
+    updateCustomColors,
+    resetCustomColors,
+  }), [theme, customColors, updateCustomColors, resetCustomColors]);
 
   return (
-    <ThemeContext.Provider value={{ 
-      theme, 
-      setTheme, 
-      customColors, 
-      updateCustomColors, 
-      resetCustomColors 
-    }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );
