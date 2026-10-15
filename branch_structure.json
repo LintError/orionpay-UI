@@ -1,0 +1,27 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "gfi/108-node-pin",
+    "gfi/26-redux-tests",
+    "gfi/28-fix-readme",
+    "gfi/31-env-config",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "gfi/108-node-pin": "main",
+    "gfi/26-redux-tests": "main",
+    "gfi/28-fix-readme": "main",
+    "gfi/31-env-config": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "gfi/108-node-pin",
+    "gfi/26-redux-tests",
+    "gfi/28-fix-readme",
+    "gfi/31-env-config",
+    "origin"
+  ]
+}
