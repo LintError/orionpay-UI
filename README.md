@@ -93,6 +93,26 @@ npm install
 npm run dev
 ```
 
+## Configuration
+
+The Stellar endpoints are environment-driven with testnet defaults, so you can point the
+app at a local Horizon server or a different network without editing `src/utils/stellar.ts`.
+Copy the committed `.env.example` to `.env.local` and set the values you need:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_HORIZON_URL` | `https://horizon-testnet.stellar.org` | Horizon endpoint for account, fee, and transaction calls |
+| `NEXT_PUBLIC_FRIENDBOT_URL` | `https://friendbot.stellar.org` | Friendbot endpoint used to fund a testnet account (leave empty where there is none) |
+| `NEXT_PUBLIC_STELLAR_NETWORK` | `testnet` | `testnet` (default) or `public`/`mainnet`; a non-testnet value also needs a matching `NEXT_PUBLIC_HORIZON_URL` |
+| `NEXT_PUBLIC_STELLAR_TX_TIMEOUT` | `30` | settlement timeout in seconds |
+
+`NEXT_PUBLIC_*` values are inlined into the browser bundle at build time, so keep them
+non-sensitive. A value that is unset, empty, or whitespace falls back to the default above.
+
 ## Stellar Integration Features
 
 Our Stellar implementation includes:
