@@ -8,9 +8,31 @@ import {
   TransactionBuilder,
 } from '@stellar/stellar-sdk';
 
-export const HORIZON_URL = 'https://horizon-testnet.stellar.org';
-const FRIENDBOT_URL = 'https://friendbot.stellar.org';
-const networkPassphrase = Networks.TESTNET;
+// The network endpoints are env-configurable so the app can point at a local
+// Horizon or a different network without a code change. NEXT_PUBLIC_* variables are
+// inlined by Next.js at build time; unset values fall back to the public testnet.
+const envString = (name: string, fallback: string): string => {
+  const value = typeof process !== 'undefined' ? process.env[name] : undefined;
+  return value && value.trim() ? value.trim() : fallback;
+};
+
+export const HORIZON_URL = envString(
+  'NEXT_PUBLIC_HORIZON_URL',
+  'https://horizon-testnet.stellar.org',
+);
+
+const FRIENDBOT_URL = envString(
+  'NEXT_PUBLIC_FRIENDBOT_URL',
+  'https://friendbot.stellar.org',
+);
+
+// 'public'/'mainnet' select mainnet; anything else (including the default)
+// uses the testnet passphrase.
+const STELLAR_NETWORK = envString('NEXT_PUBLIC_STELLAR_NETWORK', 'testnet').toLowerCase();
+const networkPassphrase =
+  STELLAR_NETWORK === 'public' || STELLAR_NETWORK === 'mainnet'
+    ? Networks.PUBLIC
+    : Networks.TESTNET;
 
 const fetchJson = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, init);
