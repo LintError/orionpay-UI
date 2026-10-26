@@ -29,7 +29,20 @@ import {
   Palette
 } from 'lucide-react';
 import { useTheme } from '@/src/contexts/ThemeContext';
-import StellarWalletLoader from '@/src/components/stellar/StellarWalletLoader';
+import dynamic from 'next/dynamic';
+import OrionLoader from '@/src/components/ui/OrionLoader';
+
+const StellarWalletLoader = dynamic(
+  () => import('@/src/components/stellar/StellarWalletLoader'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex justify-center items-center py-12">
+        <OrionLoader text="Loading Stellar Wallet..." />
+      </div>
+    ),
+  }
+);
 
 // Chain logos as simple SVGs
 const backgroundParticles = Array.from({ length: 50 }, (_, i) => ({
