@@ -50,9 +50,11 @@ const Header = () => {
           {/* CTA and Theme Toggle */}
           <div className="hidden md:flex items-center space-x-4">
             <button
+              type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200"
-              aria-label="Toggle theme"
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              aria-pressed={theme === 'dark'}
             >
               {theme === 'dark' ? <Sun className="w-5 h-5 text-white" /> : <Moon className="w-5 h-5 text-white" />}
             </button>
@@ -73,16 +75,20 @@ const Header = () => {
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-2">
             <button
+              type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200"
-              aria-label="Toggle theme"
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              aria-pressed={theme === 'dark'}
             >
               {theme === 'dark' ? <Sun className="w-5 h-5 text-white" /> : <Moon className="w-5 h-5 text-white" />}
             </button>
             <button
+              type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200"
-              aria-label="Toggle menu"
+              aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMenuOpen}
             >
               {isMenuOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
             </button>

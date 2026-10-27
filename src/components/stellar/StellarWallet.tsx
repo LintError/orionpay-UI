@@ -181,9 +181,11 @@ export default function StellarWallet() {
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Public Key</span>
-                <button 
+                <button
+                  type="button"
                   onClick={() => copyToClipboard(publicKey, 'public')}
                   className="text-blue-500 hover:text-blue-600"
+                  aria-label={copied === 'public' ? 'Public key copied' : 'Copy public key'}
                 >
                   {copied === 'public' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 </button>
@@ -195,15 +197,20 @@ export default function StellarWallet() {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Secret Key</span>
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
+                    type="button"
                     onClick={() => setShowSecret(!showSecret)}
                     className="text-gray-500 hover:text-gray-600"
+                    aria-label={showSecret ? 'Hide secret key' : 'Show secret key'}
+                    aria-pressed={showSecret}
                   >
                     <AlertCircle className="w-4 h-4" />
                   </button>
-                  <button 
+                  <button
+                    type="button"
                     onClick={() => copyToClipboard(secretKey, 'secret')}
                     className="text-blue-500 hover:text-blue-600"
+                    aria-label={copied === 'secret' ? 'Secret key copied' : 'Copy secret key'}
                   >
                     {copied === 'secret' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </button>
