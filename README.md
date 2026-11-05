@@ -73,24 +73,47 @@ Example:
 
 ## Project Structure
 
+```
 orionpay-frontend/
 
-app/
-components/
-lib/
-hooks/
-styles/
+src/
+  app/        # Next.js App Router: routes, page components
+  components/ # Reusable React components
+  contexts/   # React context providers (e.g. theme)
+  hooks/      # Shared React hooks
+  store/      # State management
+  utils/      # Helpers (incl. the Stellar SDK wrapper)
+```
+
+Note: there is no top-level `lib/` or `styles/` directory; shared
+logic lives under `src/` as shown above. Styling is Tailwind CSS
+(utility classes in `tailwind.config.ts`), not a `styles/` folder.
 
 ---
 
 ## Getting Started
 
+Requires Node.js 18+ (CI runs 18 and 20). All Stellar operations in
+this app talk to the **Stellar testnet** only, so you can run it safely
+without a funded mainnet account.
+
 ```bash
 # Install dependencies
 npm install
 
-# Run development server
+# Run the development server
 npm run dev
+```
+
+### Available scripts
+
+```bash
+npm run dev         # start the Next.js dev server
+npm run build       # production build (next build)
+npm run start       # serve the production build
+npm run lint        # next lint
+npm test            # run the test suite once (vitest run)
+npm run test:watch  # run vitest in watch mode
 ```
 
 ## Stellar Integration Features
