@@ -37,5 +37,8 @@ jobs:
         node-version: 20.x
         cache: 'npm'
     - run: npm ci
+    - name: Audit production dependencies (informational)
+      run: npm audit --omit=dev --audit-level=high
+      continue-on-error: true
     - name: Run tests
       run: npm test
